@@ -1,0 +1,20 @@
+version: 0.2
+env:
+  parameter-store:
+    SONAR_LOGIN_TOKEN: "/SonarLoginToken"
+phases:
+  install:
+    runtime-versions:
+      java: corretto8
+    commands:
+      - chmod 755 gradlew
+      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.4.0.2170-linux.zip
+      - unzip sonar-scanner-cli-4.4.0.2170-linux.zip
+      - chmod 755 sonar-scanner-4.4.0.2170-linux/bin/sonar-scanner
+      - export PATH=$PATH:./sonar-scanner-4.4.0.2170-linux/bin/
+  build:
+    commands:
+      - echo Build Phase `date`
+      - REPO_SLUG="$(echo $CODEBUILD_SOURCE_REPO_URL | sed 's/^.*github.com\///' | sed 's/\.git$//')"
+      - ./gradlew clean build
+      - sonar-scanner -Dsonar.login=${SONAR_LOGIN_TOKEN} -Dsonar.pullrequest.base=${CODEBUILD_WEBHOOK_BASE_REF##*/} -Dsonar.pullrequest.branch=${CODEBUILD_WEBHOOK_HEAD_REF##*/} -Dsonar.pullrequest.key=1 -Dsonar.pullrequest.provider=github -Dsonar.pullrequest.github.repository=${REPO_SLUG}
